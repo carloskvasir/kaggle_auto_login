@@ -41,10 +41,10 @@ USER=your_kaggle_username
 ## 📖 Usage
 ```bash
 # Basic usage
-python login.py
+python kaggle_auto_login.py
 
 # As a cron job (recommended)
-0 12 * * * /usr/bin/python3 /path/to/login.py
+0 12 * * * /usr/bin/python3 /path/to/kaggle_auto_login.py
 ```
 
 ## 🛠️ Development
