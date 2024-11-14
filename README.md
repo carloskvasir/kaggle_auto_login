@@ -1,6 +1,5 @@
 # Kaggle Auto Login 🤖
-![Daily Login Streak Badge](https://raw.githubusercontent.com/carloskvasir/kaggle_auto_login/main/image.png)
-<img alt="Python Version" src="https://img.shields.io/badge/python-3.6+-blue">
+[![Python Version](https://img.shields.io/badge/python-3.6+-blue)](https://www.python.org/)
 [![License: MPL 2.0](https://img.shields.io/badge/License-MPL_2.0-brightgreen.svg)](https://opensource.org/licenses/MPL-2.0)
 
 ## 🎯 Overview
@@ -27,7 +26,7 @@ cd kaggle-auto-login
 pip install -r requirements.txt
 
 # Setup environment
-cp .env.example .env
+cp .env{.example,}
 ```
 
 ## ⚙️ Configuration
