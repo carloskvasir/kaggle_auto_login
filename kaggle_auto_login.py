@@ -1,83 +1,176 @@
-# This Source Code Form is subject to the terms of the Mozilla Public
-# License, v. 2.0. If a copy of the MPL was not distributed with this
-# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+"""
+Kaggle Auto Login Script.
+
+This script automates the login process to Kaggle to maintain activity streak.
+It uses environment variables for authentication and provides streak information.
+"""
+
 import os
+import logging
 import requests
+from typing import Tuple
 from dotenv import load_dotenv
-from bs4 import BeautifulSoup
 
-def load_env_variables():
-    """
-    Loads environment variables from the .env file.
-    """
-    load_dotenv()
-    return os.getenv("EMAIL"), os.getenv("PASSWORD"), os.getenv("USER")
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-def get_xsrf_token(session):
+def login_to_kaggle(session: requests.Session, email: str, password: str) -> Tuple[bool, str]:
     """
-    Retrieves the XSRF token from the initial login page.
+    Login to Kaggle and get XSRF token.
+    
+    Args:
+        session: requests Session object
+        email: Kaggle account email
+        password: Kaggle account password
+        
+    Returns:
+        Tuple[bool, str]: Success status and XSRF token if successful
     """
-    initial_response = session.get("https://www.kaggle.com/account/login")
-    xsrf_token = session.cookies.get('XSRF-TOKEN')
-    if not xsrf_token:
-        # If the token is not in the cookies, look for it in the HTML page
-        soup = BeautifulSoup(initial_response.text, 'html.parser')
-        xsrf_token_tag = soup.find('input', {'name': 'X-XSRF-TOKEN'})
-        if xsrf_token_tag:
-            xsrf_token = xsrf_token_tag['value']
-    if not xsrf_token:
-        raise Exception("Could not find the XSRF Token.")
-    return xsrf_token
+    try:
+        # Get initial XSRF token from login page
+        logger.info("Getting initial XSRF token...")
+        response = session.get('https://www.kaggle.com/account/login')
+        response.raise_for_status()
+        
+        xsrf_token = session.cookies.get('XSRF-TOKEN')
+        if not xsrf_token:
+            logger.error("Could not find XSRF-TOKEN in initial cookies")
+            return False, ""
+            
+        logger.info("Got initial XSRF token")
+        
+        # Perform login
+        headers = {
+            'accept': 'application/json',
+            'accept-language': 'en-US,en;q=0.9',
+            'content-type': 'application/json',
+            'origin': 'https://www.kaggle.com',
+            'referer': 'https://www.kaggle.com/account/login',
+            'x-xsrf-token': xsrf_token,
+            'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36'
+        }
+        data = {
+            "email": email,
+            "password": password,
+            "keepMeSignedIn": False
+        }
+        
+        logger.info("Attempting login...")
+        response = session.post(
+            'https://www.kaggle.com/api/i/users.LegacyUsersService/EmailSignIn',
+            json=data,
+            headers=headers
+        )
+        response.raise_for_status()
+        
+        # Visit home page to establish valid session
+        logger.info("Visiting home page...")
+        response = session.get('https://www.kaggle.com')
+        response.raise_for_status()
+        
+        # Get new XSRF token after login
+        xsrf_token = session.cookies.get('XSRF-TOKEN')
+        if not xsrf_token:
+            logger.error("Could not find XSRF-TOKEN after login")
+            return False, ""
+            
+        logger.info("Successfully logged in")
+        return True, xsrf_token
+        
+    except Exception as e:
+        logger.error(f"Login failed: {str(e)}")
+        return False, ""
 
-def login(session, email, password, user, xsrf_token):
+def verify_login_success(session: requests.Session, xsrf_token: str) -> Tuple[bool, dict]:
     """
-    Logs into Kaggle using email, password, and XSRF token.
-    """
-    login_url = 'https://www.kaggle.com/api/i/users.LegacyUsersService/EmailSignIn'
-    login_data = {
-        'email': email,
-        'password': password,
-        'returnUrl': f"/{user}"
-    }
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.97 Safari/537.36',
-        'Content-Type': 'application/json',
-        'X-XSRF-TOKEN': xsrf_token
-    }
-    return session.post(login_url, json=login_data, headers=headers)
+    Verify if login was successful and get activity stats.
 
-def access_edit_page(session, user, headers):
+    Args:
+        session: The requests session object
+        xsrf_token: XSRF token for authentication
+
+    Returns:
+        Tuple[bool, dict]: Success status and user stats
     """
-    Accesses the edit page of a specific notebook.
-    """
-    edit_url = f"https://www.kaggle.com/code/{user}/exercise-syntax-variables-and-numbers/edit"
-    return session.get(edit_url, headers=headers)
+    try:
+        # Get user ID
+        headers = {
+            'accept': 'application/json',
+            'content-type': 'application/json',
+            'origin': 'https://www.kaggle.com',
+            'referer': 'https://www.kaggle.com/',
+            'x-xsrf-token': xsrf_token,
+            'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36'
+        }
+        data = {
+            "includeGroups": False,
+            "includeLogins": False,
+            "includeVerificationStatus": True
+        }
+        
+        logger.info("Getting user information...")
+        response = session.post(
+            'https://www.kaggle.com/api/i/users.UsersService/GetCurrentUser',
+            json=data,
+            headers=headers
+        )
+        response.raise_for_status()
+        
+        user_data = response.json()
+        user_id = user_data.get('id')
+        
+        if not user_id:
+            logger.error("Could not get user ID")
+            return False, {}
+            
+        # Get user stats
+        logger.info("Getting user stats...")
+        response = session.post(
+            'https://www.kaggle.com/api/i/users.HomePageService/GetHomePageStats',
+            json={"userId": user_id},
+            headers=headers
+        )
+        response.raise_for_status()
+        
+        return True, response.json()
+        
+    except Exception as e:
+        logger.error(f"Failed to verify login: {str(e)}")
+        return False, {}
 
 def main():
-    """
-    Main function that orchestrates the login process and access to the edit page.
-    """
-    email, password, user = load_env_variables()
-    session = requests.Session()
-    xsrf_token = get_xsrf_token(session)
-    login_response = login(session, email, password, user, xsrf_token)
-    
-    if login_response.status_code == 200:
-        print("[OK] Login successful.")
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.97 Safari/537.36',
-            'Content-Type': 'application/json',
-            'X-XSRF-TOKEN': xsrf_token
-        }
-        edit_response = access_edit_page(session, user, headers)
-        if edit_response.status_code == 200:
-            print("[OK] Edit page accessed successfully.")
-        else:
-            print(f"[ERROR] Error accessing the edit page. Status Code: {edit_response.status_code}")
-            print(edit_response.text)
-    else:
-        print(f"[ERROR] Login failed. Status Code: {login_response.status_code}")
-        print(f"Error message: {login_response.text}")
+    """Main function to run the Kaggle login script."""
+    try:
+        # Load environment variables
+        load_dotenv()
+        email = os.getenv('EMAIL')
+        password = os.getenv('PASSWORD')
+
+        if not all([email, password]):
+            logger.error("Missing required environment variables (EMAIL, PASSWORD)")
+            return
+
+        # Create session and login
+        session = requests.Session()
+        success, xsrf_token = login_to_kaggle(session, email, password)
+        if not success:
+            logger.error("Login failed")
+            return
+
+        # Verify login and get streak info
+        success, stats = verify_login_success(session, xsrf_token)
+        if not success:
+            logger.error("Failed to verify login")
+            return
+
+        # Print streak information
+        current_streak = stats.get('currentDayStreak', 0)
+        max_streak = stats.get('maxDayStreak', 0)
+        logger.info(f"Login successful! Current streak: {current_streak}, Max streak: {max_streak}")
+
+    except Exception as e:
+        logger.error(f"An error occurred: {str(e)}")
 
 if __name__ == "__main__":
     main()
