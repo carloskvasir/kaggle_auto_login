@@ -16,9 +16,6 @@ provider "google" {
 resource "google_storage_bucket" "source" {
   name     = "${var.project_id}-kaggle-login"
   location = var.region
-  versioning {
-    enabled = true
-  }
 }
 
 data "archive_file" "source" {
@@ -37,7 +34,6 @@ resource "google_storage_bucket_object" "source" {
 # Secrets management
 resource "google_secret_manager_secret" "kaggle_email" {
   secret_id = "kaggle-email"
-  
   replication {
     automatic = true
   }
@@ -50,7 +46,6 @@ resource "google_secret_manager_secret_version" "kaggle_email" {
 
 resource "google_secret_manager_secret" "kaggle_password" {
   secret_id = "kaggle-password"
-  
   replication {
     automatic = true
   }
@@ -69,7 +64,7 @@ resource "google_cloudfunctions2_function" "login" {
 
   build_config {
     runtime     = "python39"
-    entry_point = "main"  
+    entry_point = "main"
     source {
       storage_source {
         bucket = google_storage_bucket.source.name
@@ -108,7 +103,7 @@ resource "google_service_account" "scheduler" {
 resource "google_cloud_scheduler_job" "daily_login" {
   name        = "kaggle-daily-login"
   description = "Triggers Kaggle login function daily"
-  schedule    = "0 12 * * *"  
+  schedule    = "0 12 * * *"  # Noon BRT
   time_zone   = "America/Sao_Paulo"
 
   http_target {

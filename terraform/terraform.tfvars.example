@@ -1,6 +1,10 @@
+# Project ID (replace with your actual project ID)
 project_id = "your-project-id"
+# Region (replace with your actual region)
 region     = "us-central1"
 
 # Credenciais do Kaggle (serão automaticamente configuradas no Secret Manager)
+# Replace with your actual Kaggle email
 kaggle_email    = "your-email@example.com"
+# Replace with your actual Kaggle password
 kaggle_password = "your-password"
