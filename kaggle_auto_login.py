@@ -148,11 +148,11 @@ def main():
     try:
         # Load environment variables
         load_dotenv()
-        email = os.getenv('EMAIL')
-        password = os.getenv('PASSWORD')
+        email = os.getenv('KAGGLE_EMAIL')
+        password = os.getenv('KAGGLE_PASSWORD')
 
         if not all([email, password]):
-            logger.error("Missing required environment variables (EMAIL, PASSWORD)")
+            logger.error("Missing required environment variables (KAGGLE_EMAIL, KAGGLE_PASSWORD)")
             return
 
         # Create session and login
