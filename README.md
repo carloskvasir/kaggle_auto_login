@@ -7,12 +7,12 @@ Automated authentication tool designed to maintain daily login streaks on Kaggle
 
 ## ✨ Features
  - 🔐 Automated Kaggle authentication
- - 🔒 Secure environment variables management
- - 🛡️ XSRF token handling
- - 📡 HTTP session management
- - 🎯 Custom headers support
+ - 🌩️ Secure environment variables management
+ - 🔒 XSRF token handling
+ - 📊 HTTP session management
+ - 📈 Custom headers support
 
-## 📋 Requirements
+## 🛠️ Requirements
  - Python 3.6+
  - pip
 
@@ -29,7 +29,7 @@ pip install -r requirements.txt
 cp .env{.example,}
 ```
 
-## ⚙️ Configuration
+## 📝 Configuration
 Edit your .env file:
 ```bash
 EMAIL=your_kaggle_email
@@ -37,7 +37,7 @@ PASSWORD=your_kaggle_password
 USER=your_kaggle_username
 ```
 
-## 📖 Usage
+## 📊 Usage
 ```bash
 # Basic usage
 python kaggle_auto_login.py
@@ -46,7 +46,7 @@ python kaggle_auto_login.py
 0 12 * * * /usr/bin/python3 /path/to/kaggle_auto_login.py
 ```
 
-## 🛠️ Development
+## 📈 Development
 Tech Stack
  - Python 3.6+
  - requests
@@ -55,20 +55,20 @@ Tech Stack
 
 ## 🌩️ Cloud Deployment (GCP)
 
-### Overview
+### 🎯 Overview
 The project can be deployed on Google Cloud Platform (GCP) using a serverless architecture that includes:
-- Cloud Functions for script execution
-- Cloud Scheduler for automatic scheduling
-- Secret Manager for secure credentials management
-- Cloud Storage for source code storage
+- ⚡ Cloud Functions for script execution
+- ⏰ Cloud Scheduler for automatic scheduling
+- 🔑 Secret Manager for secure credentials management
+- 💾 Cloud Storage for source code storage
 
-### Prerequisites
+### 📝 Prerequisites
 - GCP Account with billing enabled
 - [Terraform](https://www.terraform.io/) installed (v1.0+)
 - [Google Cloud CLI](https://cloud.google.com/sdk/docs/install) installed and configured
 - GCP Project created
 
-### GCP Environment Setup
+### 🚀 GCP Environment Setup
 
 1. **GCP Authentication**:
    ```bash
@@ -89,7 +89,7 @@ The project can be deployed on Google Cloud Platform (GCP) using a serverless ar
      cloudbuild.googleapis.com
    ```
 
-### Terraform Deployment
+### 📈 Terraform Deployment
 
 1. **Prepare Configuration**:
    ```bash
@@ -124,7 +124,7 @@ The project can be deployed on Google Cloud Platform (GCP) using a serverless ar
    terraform apply
    ```
 
-### Monitoring and Logs
+### 📊 Monitoring and Logs
 
 1. **View Logs**:
    ```bash
@@ -137,7 +137,7 @@ The project can be deployed on Google Cloud Platform (GCP) using a serverless ar
    - Check execution status
    - Configure alerts if needed
 
-### Costs
+### 📊 Costs
 The configuration uses GCP free tier components:
 - Cloud Functions: 2 million free invocations/month
 - Cloud Scheduler: 3 free jobs/month
@@ -146,13 +146,13 @@ The configuration uses GCP free tier components:
 
 For this usage (1 execution/day), expected monthly cost is $0.00.
 
-### Security
-- Credentials managed via Secret Manager
-- IAM with least privilege principle
-- HTTPS for all communications
-- Dedicated Service Account for Cloud Scheduler
+### 🔒 Security
+- 🔐 Credentials managed via Secret Manager
+- 👮 IAM with least privilege principle
+- 🔒 HTTPS for all communications
+- 🎯 Dedicated Service Account for Cloud Scheduler
 
-### Troubleshooting
+### 🚨 Troubleshooting
 
 1. **Permission Error**:
    ```bash
@@ -165,7 +165,7 @@ For this usage (1 execution/day), expected monthly cost is $0.00.
    - Verify scheduler timezone
    - Validate Secret Manager credentials
 
-### Resource Cleanup
+### 🚮 Resource Cleanup
 ```bash
 # Remove all infrastructure
 terraform destroy
@@ -177,5 +177,3 @@ This project is licensed under the Mozilla Public License Version 2.0 - see the 
 
 ## 👤 Author
 Carlos Kvasir Lima
-
-GitHub: @carloskvasir
