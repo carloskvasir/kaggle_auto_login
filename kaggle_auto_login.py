@@ -11,8 +11,12 @@ import requests
 from typing import Tuple
 from dotenv import load_dotenv
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
+# Configure logging with timestamp
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S,%03d'
+)
 logger = logging.getLogger(__name__)
 
 def login_to_kaggle(session: requests.Session, email: str, password: str) -> Tuple[bool, str]:
