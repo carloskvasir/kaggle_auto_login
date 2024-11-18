@@ -1,6 +1,6 @@
 project_id = "your-project-id"
 region     = "us-central1"
 
-# Não coloque valores reais aqui - use terraform.tfvars
+# Credenciais do Kaggle (serão automaticamente configuradas no Secret Manager)
 kaggle_email    = "your-email@example.com"
 kaggle_password = "your-password"

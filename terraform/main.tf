@@ -12,16 +12,15 @@ provider "google" {
   region  = var.region
 }
 
-# Cloud Storage for source code
-resource "google_storage_bucket" "function_bucket" {
-  name     = "${var.project_id}-kaggle-login-source"
+# Source code storage and packaging
+resource "google_storage_bucket" "source" {
+  name     = "${var.project_id}-kaggle-login"
   location = var.region
   versioning {
     enabled = true
   }
 }
 
-# ZIP source code
 data "archive_file" "source" {
   type        = "zip"
   source_dir  = "${path.root}/.."
@@ -29,20 +28,24 @@ data "archive_file" "source" {
   excludes    = ["venv", ".git", ".env", "terraform", "*.log", "*.png", "LICENSE"]
 }
 
-# Upload code
-resource "google_storage_bucket_object" "zip" {
-  name   = "function-source-${data.archive_file.source.output_md5}.zip"
-  bucket = google_storage_bucket.function_bucket.name
+resource "google_storage_bucket_object" "source" {
+  name   = "source-${data.archive_file.source.output_md5}.zip"
+  bucket = google_storage_bucket.source.name
   source = data.archive_file.source.output_path
 }
 
-# Secret Manager for credentials
+# Secrets management
 resource "google_secret_manager_secret" "kaggle_email" {
   secret_id = "kaggle-email"
   
   replication {
     automatic = true
   }
+}
+
+resource "google_secret_manager_secret_version" "kaggle_email" {
+  secret      = google_secret_manager_secret.kaggle_email.id
+  secret_data = var.kaggle_email
 }
 
 resource "google_secret_manager_secret" "kaggle_password" {
@@ -53,19 +56,24 @@ resource "google_secret_manager_secret" "kaggle_password" {
   }
 }
 
+resource "google_secret_manager_secret_version" "kaggle_password" {
+  secret      = google_secret_manager_secret.kaggle_password.id
+  secret_data = var.kaggle_password
+}
+
 # Cloud Function
-resource "google_cloudfunctions2_function" "kaggle_login" {
+resource "google_cloudfunctions2_function" "login" {
   name        = "kaggle-login"
   location    = var.region
   description = "Automated Kaggle login function"
 
   build_config {
     runtime     = "python39"
-    entry_point = "kaggle_login"
+    entry_point = "main"  
     source {
       storage_source {
-        bucket = google_storage_bucket.function_bucket.name
-        object = google_storage_bucket_object.zip.name
+        bucket = google_storage_bucket.source.name
+        object = google_storage_bucket_object.source.name
       }
     }
   }
@@ -91,34 +99,33 @@ resource "google_cloudfunctions2_function" "kaggle_login" {
   }
 }
 
-# Service Account
-resource "google_service_account" "function_invoker" {
-  account_id   = "kaggle-function-invoker"
-  display_name = "Kaggle Function Invoker"
+# Scheduler configuration
+resource "google_service_account" "scheduler" {
+  account_id   = "kaggle-scheduler"
+  display_name = "Kaggle Login Scheduler"
 }
 
-# Cloud Scheduler
-resource "google_cloud_scheduler_job" "kaggle_login_job" {
+resource "google_cloud_scheduler_job" "daily_login" {
   name        = "kaggle-daily-login"
   description = "Triggers Kaggle login function daily"
-  schedule    = "0 0 * * *"
+  schedule    = "0 12 * * *"  
   time_zone   = "America/Sao_Paulo"
 
   http_target {
     http_method = "POST"
-    uri         = google_cloudfunctions2_function.kaggle_login.url
+    uri         = google_cloudfunctions2_function.login.url
     
     oidc_token {
-      service_account_email = google_service_account.function_invoker.email
+      service_account_email = google_service_account.scheduler.email
     }
   }
 }
 
-# IAM
+# IAM permissions
 resource "google_cloudfunctions2_function_iam_member" "invoker" {
-  project        = google_cloudfunctions2_function.kaggle_login.project
-  location       = google_cloudfunctions2_function.kaggle_login.location
-  cloud_function = google_cloudfunctions2_function.kaggle_login.name
+  project        = google_cloudfunctions2_function.login.project
+  location       = google_cloudfunctions2_function.login.location
+  cloud_function = google_cloudfunctions2_function.login.name
   role           = "roles/cloudfunctions.invoker"
-  member         = "serviceAccount:${google_service_account.function_invoker.email}"
+  member         = "serviceAccount:${google_service_account.scheduler.email}"
 }
