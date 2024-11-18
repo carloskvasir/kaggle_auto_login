@@ -12,7 +12,7 @@ provider "google" {
   region  = var.region
 }
 
-# Cloud Storage para o código fonte
+# Cloud Storage for source code
 resource "google_storage_bucket" "function_bucket" {
   name     = "${var.project_id}-kaggle-login-source"
   location = var.region
@@ -21,21 +21,22 @@ resource "google_storage_bucket" "function_bucket" {
   }
 }
 
-# ZIP do código fonte
+# ZIP source code
 data "archive_file" "source" {
   type        = "zip"
-  source_dir  = "${path.module}/src"
+  source_dir  = "${path.root}/.."
   output_path = "${path.module}/function-source.zip"
+  excludes    = ["venv", ".git", ".env", "terraform", "*.log", "*.png", "LICENSE"]
 }
 
-# Upload do código
+# Upload code
 resource "google_storage_bucket_object" "zip" {
   name   = "function-source-${data.archive_file.source.output_md5}.zip"
   bucket = google_storage_bucket.function_bucket.name
   source = data.archive_file.source.output_path
 }
 
-# Secret Manager para credenciais
+# Secret Manager for credentials
 resource "google_secret_manager_secret" "kaggle_email" {
   secret_id = "kaggle-email"
   
@@ -100,7 +101,7 @@ resource "google_service_account" "function_invoker" {
 resource "google_cloud_scheduler_job" "kaggle_login_job" {
   name        = "kaggle-daily-login"
   description = "Triggers Kaggle login function daily"
-  schedule    = "0 12 * * *"
+  schedule    = "0 0 * * *"
   time_zone   = "America/Sao_Paulo"
 
   http_target {
